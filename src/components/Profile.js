@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebaseConfig';
-import { collection, addDoc, getDocs, query, where, serverTimestamp, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, serverTimestamp, orderBy, deleteDoc, doc, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 
-function Profile() {
+function Profile({ setEmail, setPassword }) {
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState('');
   const navigate = useNavigate();
+  const [likedPosts, setLikedPosts] = useState({});
+  const [comments, setComments] = useState({}); // Track comments for each post
+  const [newComment, setNewComment] = useState({}); // Track new comment input for each post
 
   const handleSignOut = async () => {
     try {
       await auth.signOut();
-      navigate('/'); // Redirect to the main page after signing out
+      setEmail('');
+      setPassword('');
+      navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -23,7 +28,7 @@ function Profile() {
       const q = query(
         postsRef,
         where('userId', '==', auth.currentUser.uid),
-        orderBy('timestamp', 'desc') // Ordenar por timestamp en orden descendente
+        orderBy('timestamp', 'desc')
       );
       const querySnapshot = await getDocs(q);
       const userPosts = querySnapshot.docs.map((doc) => ({
@@ -31,8 +36,43 @@ function Profile() {
         ...doc.data(),
       }));
       setPosts(userPosts);
+
+      // Initialize liked posts and comments
+      const initialLikedPosts = {};
+      const initialComments = {};
+      userPosts.forEach(post => {
+        initialLikedPosts[post.id] = post.likedBy && post.likedBy.includes(auth.currentUser.uid);
+        initialComments[post.id] = []; // Initialize with an empty array for comments
+      });
+      setLikedPosts(initialLikedPosts);
+      setComments(initialComments);
+
+      // Fetch comments for each post
+      userPosts.forEach(async post => {
+        await fetchComments(post.id);
+      });
+
     } catch (error) {
       console.error('Error fetching posts:', error);
+    }
+  };
+
+  const fetchComments = async (postId) => {
+    try {
+      const commentsRef = collection(db, 'posts', postId, 'comments');
+      const q = query(commentsRef, orderBy('timestamp', 'asc'));
+      const querySnapshot = await getDocs(q);
+      const postComments = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setComments(prevComments => ({
+        ...prevComments,
+        [postId]: postComments,
+      }));
+    } catch (error) {
+      console.error('Error fetching comments:', error);
     }
   };
 
@@ -41,25 +81,23 @@ function Profile() {
       alert('Post content cannot be empty.');
       return;
     }
-  
+
     if (!auth.currentUser) {
       alert('You must be signed in to create a post.');
       return;
     }
-  
+
     try {
-      console.log('Creating post with the following data:');
-      console.log('User ID:', auth.currentUser.uid);
-      console.log('Content:', newPost);
-  
       const post = {
-        userId: auth.currentUser.uid, // ID del usuario autenticado
+        userId: auth.currentUser.uid,
         content: newPost,
         timestamp: serverTimestamp(),
+        likes: 0,
+        likedBy: [],
       };
       await addDoc(collection(db, 'posts'), post);
       setNewPost('');
-      fetchPosts(); // Actualizar la lista de publicaciones
+      fetchPosts();
     } catch (error) {
       console.error('Error creating post:', error);
     }
@@ -69,9 +107,74 @@ function Profile() {
     try {
       const postRef = doc(db, 'posts', postId);
       await deleteDoc(postRef);
-      fetchPosts(); // Actualizar la lista de publicaciones
+      fetchPosts();
     } catch (error) {
       console.error('Error deleting post:', error);
+    }
+  };
+
+  const handleLikePost = async (postId) => {
+    try {
+      const postRef = doc(db, 'posts', postId);
+      const userId = auth.currentUser.uid;
+      const alreadyLiked = likedPosts[postId];
+
+      setLikedPosts(prevLikedPosts => ({
+        ...prevLikedPosts,
+        [postId]: !alreadyLiked,
+      }));
+
+      if (alreadyLiked) {
+        await updateDoc(postRef, {
+          likes: increment(-1),
+          likedBy: arrayRemove(userId),
+        });
+      } else {
+        await updateDoc(postRef, {
+          likes: increment(1),
+          likedBy: arrayUnion(userId),
+        });
+      }
+
+    } catch (error) {
+      console.error('Error liking post:', error);
+      fetchPosts();
+    }
+  };
+
+  const handleAddComment = async (postId) => {
+    try {
+      const commentText = newComment[postId];
+      if (!commentText || commentText.trim() === '') {
+        alert('Comment cannot be empty.');
+        return;
+      }
+
+      const commentsRef = collection(db, 'posts', postId, 'comments');
+      await addDoc(commentsRef, {
+        userId: auth.currentUser.uid,
+        text: commentText,
+        timestamp: serverTimestamp(),
+      });
+
+      setNewComment(prevNewComment => ({
+        ...prevNewComment,
+        [postId]: '', // Clear the comment input
+      }));
+
+      fetchComments(postId); // Refresh comments
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
+
+  const handleDeleteComment = async (postId, commentId) => {
+    try {
+      const commentRef = doc(db, 'posts', postId, 'comments', commentId);
+      await deleteDoc(commentRef);
+      fetchComments(postId); // Refresh comments
+    } catch (error) {
+      console.error('Error deleting comment:', error);
     }
   };
 
@@ -109,19 +212,77 @@ function Profile() {
           <div key={post.id} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
             <p>{post.content}</p>
             <small>Posted on: {new Date(post.timestamp?.seconds * 1000).toLocaleString()}</small>
-            <button
-              onClick={() => handleDeletePost(post.id)}
-              style={{
-                backgroundColor: '#dc3545',
-                color: '#fff',
-                border: 'none',
-                padding: '5px 10px',
-                cursor: 'pointer',
-                marginLeft: '10px',
-              }}
-            >
-              Delete
-            </button>
+            <div>
+              <button
+                onClick={() => handleLikePost(post.id)}
+                disabled={false}
+                style={{
+                  backgroundColor: likedPosts[post.id] ? '#ccc' : '#007BFF',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '5px 10px',
+                  cursor: 'pointer',
+                  marginRight: '10px',
+                }}
+              >
+                {likedPosts[post.id] ? 'Liked' : 'Like'}
+              </button>
+              <button
+                onClick={() => handleDeletePost(post.id)}
+                style={{
+                  backgroundColor: '#dc3545',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '5px 10px',
+                  cursor: 'pointer',
+                  marginLeft: '10px',
+                }}
+              >
+                Delete
+              </button>
+            </div>
+
+            {/* Comments Section */}
+            <div>
+              <h4>Comments</h4>
+              {comments[post.id] && comments[post.id].map((comment) => (
+                <div key={comment.id} style={{ border: '1px solid #eee', padding: '5px', marginBottom: '5px' }}>
+                  <p>{comment.text}</p>
+                  <small>Commented on: {new Date(comment.timestamp?.seconds * 1000).toLocaleString()}</small>
+                  {comment.userId === auth.currentUser.uid && (
+                    <button
+                      onClick={() => handleDeleteComment(post.id, comment.id)}
+                      style={{
+                        backgroundColor: '#dc3545',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '3px 6px',
+                        cursor: 'pointer',
+                        marginLeft: '10px',
+                      }}
+                    >
+                      Delete Comment
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              <textarea
+                value={newComment[post.id] || ''}
+                onChange={(e) => setNewComment(prevNewComment => ({
+                  ...prevNewComment,
+                  [post.id]: e.target.value,
+                }))}
+                placeholder="Add a comment..."
+                style={{ width: '100%', padding: '5px', marginBottom: '5px', height: '50px' }}
+              />
+              <button
+                onClick={() => handleAddComment(post.id)}
+                style={{ padding: '5px', backgroundColor: '#28A745', color: '#fff', border: 'none', cursor: 'pointer' }}
+              >
+                Add Comment
+              </button>
+            </div>
           </div>
         ))
       ) : (

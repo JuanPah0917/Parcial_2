@@ -155,7 +155,7 @@ function App() {
           </div>
         }
       />
-      <Route path="/profile" element={<Profile />} />
+      <Route path="/profile" element={<Profile setEmail={setEmail} setPassword={setPassword} />} />
     </Routes>
   );
 }
