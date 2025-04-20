@@ -3,6 +3,7 @@ Justine Barreto, Andrés Evertsz, Juan Pineda
 
 # Project  
 Build X (formerly Twitter)
+[![Demo](https://img.youtube.com/vi/RJhJ2JYpFxc/0.jpg)](https://www.youtube.com/watch?v=RJhJ2JYpFxc)
 
 ---
 
