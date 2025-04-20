@@ -183,111 +183,251 @@ function Profile({ setEmail, setPassword }) {
   }, []);
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '20px' }}>
-      <h2>Welcome to Your Profile</h2>
-      <button
-        onClick={handleSignOut}
-        style={{ backgroundColor: '#f0f0f0', border: '1px solid #ccc', padding: '10px', cursor: 'pointer', marginBottom: '20px' }}
-      >
-        Sign Out
-      </button>
-
-      <h3>Create a New Post</h3>
-      <textarea
-        value={newPost}
-        onChange={(e) => setNewPost(e.target.value)}
-        placeholder="Write something..."
-        style={{ width: '100%', padding: '10px', marginBottom: '10px', height: '100px' }}
-      />
-      <button
-        onClick={handleCreatePost}
-        style={{ padding: '10px', backgroundColor: '#007BFF', color: '#fff', border: 'none', cursor: 'pointer' }}
-      >
-        Post
-      </button>
-
-      <h3>Your Posts</h3>
-      {posts.length > 0 ? (
-        posts.map((post) => (
-          <div key={post.id} style={{ border: '1px solid #ccc', padding: '10px', marginBottom: '10px' }}>
-            <p>{post.content}</p>
-            <small>Posted on: {new Date(post.timestamp?.seconds * 1000).toLocaleString()}</small>
-            <div>
-              <button
-                onClick={() => handleLikePost(post.id)}
-                disabled={false}
-                style={{
-                  backgroundColor: likedPosts[post.id] ? '#ccc' : '#007BFF',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '5px 10px',
-                  cursor: 'pointer',
-                  marginRight: '10px',
-                }}
-              >
-                {likedPosts[post.id] ? 'Liked' : 'Like'}
-              </button>
-              <button
-                onClick={() => handleDeletePost(post.id)}
-                style={{
-                  backgroundColor: '#dc3545',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '5px 10px',
-                  cursor: 'pointer',
-                  marginLeft: '10px',
-                }}
-              >
-                Delete
-              </button>
-            </div>
-
-            {/* Comments Section */}
-            <div>
-              <h4>Comments</h4>
-              {comments[post.id] && comments[post.id].map((comment) => (
-                <div key={comment.id} style={{ border: '1px solid #eee', padding: '5px', marginBottom: '5px' }}>
-                  <p>{comment.text}</p>
-                  <small>Commented on: {new Date(comment.timestamp?.seconds * 1000).toLocaleString()}</small>
-                  {comment.userId === auth.currentUser.uid && (
-                    <button
-                      onClick={() => handleDeleteComment(post.id, comment.id)}
-                      style={{
-                        backgroundColor: '#dc3545',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '3px 6px',
-                        cursor: 'pointer',
-                        marginLeft: '10px',
-                      }}
-                    >
-                      Delete Comment
-                    </button>
-                  )}
-                </div>
-              ))}
-
-              <textarea
-                value={newComment[post.id] || ''}
-                onChange={(e) => setNewComment(prevNewComment => ({
-                  ...prevNewComment,
-                  [post.id]: e.target.value,
-                }))}
-                placeholder="Add a comment..."
-                style={{ width: '100%', padding: '5px', marginBottom: '5px', height: '50px' }}
-              />
-              <button
-                onClick={() => handleAddComment(post.id)}
-                style={{ padding: '5px', backgroundColor: '#28A745', color: '#fff', border: 'none', cursor: 'pointer' }}
-              >
-                Add Comment
-              </button>
-            </div>
+    <div style={{
+      maxWidth: '1000px', // Reduced from 1200px
+      margin: '40px auto',
+      padding: '30px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif',
+      display: 'grid',
+      gridTemplateColumns: '400px 1fr', // Increased left column from 350px to 400px
+      gap: '30px'
+    }}>
+      {/* Left Column - Profile and Create Post */}
+      <div>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '10px',
+          padding: '20px',
+          marginBottom: '20px',
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px'
+          }}>
+            <h2 style={{
+              color: '#1DA1F2',
+              margin: 0,
+              fontSize: '24px'
+            }}>Your Profile</h2>
+            <button
+              onClick={handleSignOut}
+              style={{
+                backgroundColor: '#15202b',
+                color: 'white',
+                border: 'none',
+                borderRadius: '20px',
+                padding: '10px 20px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'background-color 0.2s'
+              }}
+            >
+              Sign Out
+            </button>
           </div>
-        ))
-      ) : (
-        <p>You have no posts yet.</p>
-      )}
+        </div>
+
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '10px',
+          padding: '20px',
+          marginBottom: '20px',
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+          position: 'sticky',
+          top: '20px' // Sticky positioning
+        }}>
+          <h3 style={{ color: '#15202b', marginTop: 0 }}>Create a New Post</h3>
+          <textarea
+            value={newPost}
+            onChange={(e) => setNewPost(e.target.value)}
+            placeholder="What's on your mind?"
+            style={{
+              width: '100%',
+              padding: '15px',
+              marginBottom: '15px',
+              borderRadius: '8px',
+              border: '1px solid #e1e8ed',
+              fontSize: '16px',
+              resize: 'vertical',
+              minHeight: '150px', // Increased from 100px
+              boxSizing: 'border-box',
+              outline: 'none'
+            }}
+          />
+          <button
+            onClick={handleCreatePost}
+            style={{
+              backgroundColor: '#1DA1F2',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              padding: '12px 20px', // Increased padding
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              transition: 'background-color 0.2s',
+              width: '100%' // Make button full width
+            }}
+          >
+            Post
+          </button>
+        </div>
+      </div>
+
+      {/* Right Column - Posts Feed */}
+      <div style={{ maxWidth: '500px' }}> {/* Added maxWidth to posts container */}
+        <h3 style={{ color: '#15202b', marginTop: 0 }}>Your Posts</h3>
+        {posts.length > 0 ? (
+          posts.map((post) => (
+            <div 
+              key={post.id} 
+              style={{
+                backgroundColor: 'white',
+                borderRadius: '10px',
+                padding: '20px',
+                marginBottom: '20px',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+              }}
+            >
+              <p style={{ fontSize: '16px', margin: '0 0 15px 0' }}>{post.content}</p>
+              <small style={{ color: '#657786' }}>
+                Posted on: {new Date(post.timestamp?.seconds * 1000).toLocaleString()}
+              </small>
+              
+              <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => handleLikePost(post.id)}
+                  style={{
+                    backgroundColor: likedPosts[post.id] ? '#E1E8ED' : '#1DA1F2',
+                    color: likedPosts[post.id] ? '#1DA1F2' : 'white',
+                    border: 'none',
+                    borderRadius: '20px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {likedPosts[post.id] ? '❤️ Liked' : '🤍 Like'}
+                </button>
+                <button
+                  onClick={() => handleDeletePost(post.id)}
+                  style={{
+                    backgroundColor: '#dc3545',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '20px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'background-color 0.2s'
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+
+              {/* Comments Section */}
+              <div style={{ marginTop: '20px' }}>
+                <h4 style={{ color: '#15202b', marginBottom: '15px' }}>Comments</h4>
+                {comments[post.id] && comments[post.id].map((comment) => (
+                  <div 
+                    key={comment.id} 
+                    style={{
+                      backgroundColor: '#F5F8FA',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      marginBottom: '10px'
+                    }}
+                  >
+                    <p style={{ margin: '0 0 8px 0' }}>{comment.text}</p>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <small style={{ color: '#657786' }}>
+                        {new Date(comment.timestamp?.seconds * 1000).toLocaleString()}
+                      </small>
+                      {comment.userId === auth.currentUser.uid && (
+                        <button
+                          onClick={() => handleDeleteComment(post.id, comment.id)}
+                          style={{
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '15px',
+                            padding: '5px 12px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            transition: 'background-color 0.2s'
+                          }}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                <textarea
+                  value={newComment[post.id] || ''}
+                  onChange={(e) => setNewComment(prevNewComment => ({
+                    ...prevNewComment,
+                    [post.id]: e.target.value,
+                  }))}
+                  placeholder="Write a comment..."
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid #e1e8ed',
+                    marginBottom: '10px',
+                    fontSize: '14px',
+                    resize: 'vertical',
+                    minHeight: '50px',
+                    boxSizing: 'border-box',
+                    outline: 'none'
+                  }}
+                />
+                <button
+                  onClick={() => handleAddComment(post.id)}
+                  style={{
+                    backgroundColor: '#28A745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '20px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'background-color 0.2s'
+                  }}
+                >
+                  Add Comment
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p style={{ 
+            textAlign: 'center', 
+            color: '#657786', 
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '10px',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+          }}>
+            You have no posts yet.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
