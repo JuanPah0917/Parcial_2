@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebaseConfig';
 import { collection, addDoc, getDocs, query, where, serverTimestamp, orderBy, deleteDoc, doc, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+import * as Sentry from "@sentry/react";
 
 function Profile({ setEmail, setPassword }) {
   const [posts, setPosts] = useState([]);
@@ -24,36 +25,24 @@ function Profile({ setEmail, setPassword }) {
 
   const fetchPosts = async () => {
     try {
-      const postsRef = collection(db, 'posts');
-      const q = query(
-        postsRef,
-        where('userId', '==', auth.currentUser.uid),
-        orderBy('timestamp', 'desc')
-      );
-      const querySnapshot = await getDocs(q);
-      const userPosts = querySnapshot.docs.map((doc) => ({
+      const postsCollection = collection(db, 'posts');
+      const querySnapshot = await getDocs(postsCollection);
+      
+      // Add null check here
+      if (!querySnapshot?.docs) {
+        setPosts([]);
+        return;
+      }
+
+      const postsData = querySnapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data(),
+        ...doc.data()
       }));
-      setPosts(userPosts);
-
-      // Initialize liked posts and comments
-      const initialLikedPosts = {};
-      const initialComments = {};
-      userPosts.forEach(post => {
-        initialLikedPosts[post.id] = post.likedBy && post.likedBy.includes(auth.currentUser.uid);
-        initialComments[post.id] = []; // Initialize with an empty array for comments
-      });
-      setLikedPosts(initialLikedPosts);
-      setComments(initialComments);
-
-      // Fetch comments for each post
-      userPosts.forEach(async post => {
-        await fetchComments(post.id);
-      });
-
+      setPosts(postsData);
     } catch (error) {
       console.error('Error fetching posts:', error);
+      Sentry.captureException(error);
+      setPosts([]); // Set empty array on error
     }
   };
 
