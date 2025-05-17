@@ -24,28 +24,18 @@ jobs:
       
     - name: Create env file
       run: |
-        echo "REACT_APP_SENTRY_DSN=${{ secrets.REACT_APP_SENTRY_DSN }}" > .env
+        touch .env
+        echo "REACT_APP_SENTRY_DSN=${{ secrets.REACT_APP_SENTRY_DSN }}" >> .env
       
-    - name: Run tests
-      run: npm test -- --watchAll=false --coverage --passWithNoTests
-      env:
-        CI: true
-        REACT_APP_SENTRY_DSN: ${{ secrets.REACT_APP_SENTRY_DSN }}
+    - name: Run tests and generate coverage
+      run: CI=true npm test
       
-    - name: Check if coverage directory exists
-      run: |
-        if [ ! -d "coverage" ]; then
-          echo "Coverage directory does not exist!"
-          exit 1
-        fi
+    - name: List coverage directory
+      run: ls -la coverage
       
     - name: Upload coverage reports
-      uses: actions/upload-artifact@v3
       if: success()
+      uses: actions/upload-artifact@v3
       with:
         name: coverage-reports
-        path: |
-          coverage/
-          !coverage/lcov-report/
-
-
+        path: coverage/
