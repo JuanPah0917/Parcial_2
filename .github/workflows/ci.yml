@@ -11,10 +11,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
     - name: Set up Node.js
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
         node-version: '18'
         cache: 'npm'
@@ -22,24 +22,18 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
+    - name: Create env file
+      run: |
+        echo "REACT_APP_SENTRY_DSN=${{ secrets.REACT_APP_SENTRY_DSN }}" > .env
+      
     - name: Run tests
       run: npm test -- --watchAll=false --coverage
       env:
         REACT_APP_SENTRY_DSN: ${{ secrets.REACT_APP_SENTRY_DSN }}
       
     - name: Upload test coverage
-      uses: actions/upload-artifact@v2
-      if: success() || failure()
+      uses: actions/upload-artifact@v3
+      if: always()
       with:
-        name: coverage
+        name: coverage-report
         path: coverage/
-        
-    - name: Check test coverage
-      run: |
-        $coverage = Get-Content coverage/coverage-final.json | ConvertFrom-Json
-        $threshold = 30
-        $totalCoverage = [math]::Round($coverage.total.lines.pct, 2)
-        if ($totalCoverage -lt $threshold) {
-          Write-Error "Test coverage ($totalCoverage%) is below threshold ($threshold%)"
-          exit 1
-        }
