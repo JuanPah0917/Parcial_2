@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@growthbook/growthbook-react": "^1.5.1",
     "@sentry/react": "^7.101.1",
     "firebase": "^11.6.0",
     "react": "^18.2.0",

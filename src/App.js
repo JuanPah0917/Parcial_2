@@ -4,10 +4,27 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswor
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import Profile from './components/Profile';
 import * as Sentry from "@sentry/react";
+import { useFeatureIsOn } from "@growthbook/growthbook-react";
 
 export const isValidGmail = (email) => {
   const domain = email.split('@')[1];
   return domain === 'gmail.com';
+};
+
+const isDev = process.env.NODE_ENV === 'development';
+
+const captureError = (error) => {
+  if (isDev) {
+    const errors = JSON.parse(localStorage.getItem('mini-x-errors') || '[]');
+    errors.push({
+      message: error.message,
+      stack: error.stack,
+      date: new Date().toISOString()
+    });
+    localStorage.setItem('mini-x-errors', JSON.stringify(errors));
+  } else {
+    Sentry.captureException(error);
+  }
 };
 
 function App() {
@@ -18,6 +35,9 @@ function App() {
   const [resetMessage, setResetMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+
+  // Usa el feature flag
+  const showExperimentButton = useFeatureIsOn("show-experiment-button");
 
   const handleSignUp = async () => {
     setError('');
@@ -87,7 +107,7 @@ function App() {
     try {
       throw new Error(`Test error from ${email || 'unknown user'} at ${new Date().toISOString()}`);
     } catch (error) {
-      Sentry.captureException(error);
+      captureError(error);
       // Añadimos un mensaje visual para confirmar que el error fue enviado
       alert('Error de prueba enviado a Sentry. Verifica el dashboard.');
     }
@@ -309,6 +329,40 @@ function App() {
             >
               Test Sentry Error
             </button>
+
+            {/* Feature flag: botón o link */}
+            <div style={{ marginTop: '30px', textAlign: 'center' }}>
+              {showExperimentButton ? (
+                <button
+                  style={{
+                    backgroundColor: '#ff9800',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '12px 24px',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    fontWeight: 'bold'
+                  }}
+                  onClick={() => alert('¡Botón experimental!')}
+                >
+                  Botón Experimental
+                </button>
+              ) : (
+                <a
+                  href="https://growthbook.io/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: '#ff9800',
+                    fontSize: '16px',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Link Experimental
+                </a>
+              )}
+            </div>
           </div>
         }
       />
