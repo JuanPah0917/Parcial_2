@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Mini X Error Viewer",
+  "version": "1.0",
+  "description": "Muestra los errores de la app en vez de enviarlos a Sentry (modo desarrollo)",
+  "permissions": ["scripting", "activeTab"],
+  "host_permissions": ["http://localhost:3000/*"],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

@@ -25,10 +25,9 @@ function Profile({ setEmail, setPassword }) {
 
   const fetchPosts = async () => {
     try {
-      const postsCollection = collection(db, 'posts');
-      const querySnapshot = await getDocs(postsCollection);
-      
-      // Add null check here
+      const postsQuery = query(collection(db, 'posts'), orderBy('timestamp', 'desc'));
+      const querySnapshot = await getDocs(postsQuery);
+
       if (!querySnapshot?.docs) {
         setPosts([]);
         return;
