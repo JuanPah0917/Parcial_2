@@ -3,6 +3,12 @@ import { auth } from './firebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import Profile from './components/Profile';
+import * as Sentry from "@sentry/react";
+
+export const isValidGmail = (email) => {
+  const domain = email.split('@')[1];
+  return domain === 'gmail.com';
+};
 
 function App() {
   const [email, setEmail] = useState('');
@@ -12,11 +18,6 @@ function App() {
   const [resetMessage, setResetMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-
-  const isValidGmail = (email) => {
-    const domain = email.split('@')[1];
-    return domain === 'gmail.com';
-  };
 
   const handleSignUp = async () => {
     setError('');
@@ -30,7 +31,7 @@ function App() {
 
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      setSuccessMessage('Account created successfully! Please sign in with your credentials.');
+      setSuccessMessage('Account created successfully!');
       setEmail('');
       setPassword('');
     } catch (error) {
@@ -70,7 +71,7 @@ function App() {
 
     try {
       await sendPasswordResetEmail(auth, email);
-      setResetMessage('Password reset email sent! Please check your inbox.');
+      setResetMessage('Reset email sent! Please check your inbox.');
     } catch (error) {
       if (error.code === 'auth/user-not-found') {
         setError('This account does not exist. Please use Sign Up.');
@@ -79,6 +80,16 @@ function App() {
       } else {
         setError(`Error: ${error.message}`);
       }
+    }
+  };
+
+  const testSentryError = () => {
+    try {
+      throw new Error(`Test error from ${email || 'unknown user'} at ${new Date().toISOString()}`);
+    } catch (error) {
+      Sentry.captureException(error);
+      // Añadimos un mensaje visual para confirmar que el error fue enviado
+      alert('Error de prueba enviado a Sentry. Verifica el dashboard.');
     }
   };
 
@@ -282,6 +293,22 @@ function App() {
                 Sign In
               </button>
             </div>
+            <button
+              onClick={testSentryError}
+              style={{
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                padding: '10px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}
+            >
+              Test Sentry Error
+            </button>
           </div>
         }
       />
